@@ -4,8 +4,8 @@ import pf.Stdout
 import pf.File
 
 main! = |_args|
-    # input = File.read_utf8!("data/day_01_example_01.txt")?
-    input = File.read_utf8!("data/day_01_input_01.txt")?
+    input = File.read_utf8!("data/day_01_example_01.txt")?
+    # input = File.read_utf8!("data/day_01_input_01.txt")?
     lines = input |> Str.split_on("\n")
     res1 = lines |> puzzle1! |> Num.to_str
     Stdout.line!("${res1}")
@@ -17,18 +17,20 @@ puzzle1! = |lines|
     |> List.walk!(
         [50],
         |state, elem|
-            curr = state |> List.last |> Result.with_default(50)
+            curr =
+                state
+                |> List.last
+                |> Result.with_default(50)
+
             state |> List.append(move(curr, elem)),
     )
-    |> List.count_if(|elem| elem == 0)
+    |> List.count_if(|elem| modulo(elem, 100) == 0)
 
 move : I64, { dir : Str, steps : I64 } -> I64
 move = |curr, instruction|
-    res =
-        when instruction.dir is
-            "R" -> curr + instruction.steps
-            _ -> curr - instruction.steps
-    res |> modulo(100)
+    when instruction.dir is
+        "R" -> curr + instruction.steps
+        _ -> curr - instruction.steps
 
 split_line : Str, U64 -> { dir : Str, steps : I64 }
 split_line = |line, idx|
