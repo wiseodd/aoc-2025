@@ -4,33 +4,66 @@ import pf.Stdout
 import pf.File
 
 main! = |_args|
-    input = File.read_utf8!("data/day_01_example_01.txt")?
-    # input = File.read_utf8!("data/day_01_input_01.txt")?
+    # input = File.read_utf8!("data/day_01_example_01.txt")?
+    input = File.read_utf8!("data/day_01_input_01.txt")?
     lines = input |> Str.split_on("\n")
+
     res1 = lines |> puzzle1! |> Num.to_str
-    Stdout.line!("${res1}")
+    res2 = lines |> puzzle2! |> Num.to_str
 
-puzzle1! : List Str => U64
+    Stdout.line!("Puzzle 1: ${res1}\nPuzzle 2: ${res2}")
+
+puzzle1! : List Str => I64
 puzzle1! = |lines|
-    lines
-    |> List.map(|line| split_line(line, 1))
-    |> List.walk!(
-        [50],
-        |state, elem|
-            curr =
-                state
-                |> List.last
-                |> Result.with_default(50)
+    res =
+        lines
+        |> List.map(|line| line |> split_line(1))
+        |> List.walk(
+            { curr: 50, count: 0 },
+            |state, instruction|
+                next = state.curr |> move(instruction) |> modulo(100)
+                { curr: next, count: state.count + Num.from_bool(next == 0) },
+        )
+    res.count
 
-            state |> List.append(move(curr, elem)),
-    )
-    |> List.count_if(|elem| modulo(elem, 100) == 0)
+puzzle2! : List Str => I64
+puzzle2! = |lines|
+    res =
+        lines
+        |> List.map(|line| split_line(line, 1))
+        |> List.walk(
+            { curr: 50, count: 0 },
+            |state, x|
+                inc = (
+                    if x.dir == "R" then
+                        (state.curr + x.steps) // 100
+                    else if x.dir == "L" then
+                        if state.curr == 0 then
+                            x.steps // 100
+                        else if x.steps >= state.curr then
+                            1 + (x.steps - state.curr) // 100
+                        else
+                            0
+                    else
+                        0
+                )
+
+                {
+                    curr: state.curr |> move(x),
+                    count: state.count + inc,
+                },
+        )
+
+    res.count
 
 move : I64, { dir : Str, steps : I64 } -> I64
 move = |curr, instruction|
-    when instruction.dir is
-        "R" -> curr + instruction.steps
-        _ -> curr - instruction.steps
+    (
+        when instruction.dir is
+            "R" -> curr + instruction.steps
+            _ -> curr - instruction.steps
+    )
+    |> modulo(100)
 
 split_line : Str, U64 -> { dir : Str, steps : I64 }
 split_line = |line, idx|
@@ -51,3 +84,4 @@ split_line = |line, idx|
 modulo : I64, I64 -> I64
 modulo = |a, b|
     ((a % b) + b) % b
+
