@@ -8,13 +8,13 @@ main! = |_args|
     input = File.read_utf8!("data/day_01_input_01.txt")?
     lines = input |> Str.split_on("\n")
 
-    res1 = lines |> puzzle1! |> Num.to_str
-    res2 = lines |> puzzle2! |> Num.to_str
+    res1 = lines |> puzzle1 |> Num.to_str
+    res2 = lines |> puzzle2 |> Num.to_str
 
     Stdout.line!("Puzzle 1: ${res1}\nPuzzle 2: ${res2}")
 
-puzzle1! : List Str => I64
-puzzle1! = |lines|
+puzzle1 : List Str -> I64
+puzzle1 = |lines|
     res =
         lines
         |> List.map(|line| line |> split_line(1))
@@ -26,8 +26,8 @@ puzzle1! = |lines|
         )
     res.count
 
-puzzle2! : List Str => I64
-puzzle2! = |lines|
+puzzle2 : List Str -> I64
+puzzle2 = |lines|
     res =
         lines
         |> List.map(|line| split_line(line, 1))
