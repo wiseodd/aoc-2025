@@ -31,8 +31,9 @@ main! = |_args|
         )
 
     res1 = puzzle1(ids, ranges, 0) |> Num.to_str
+    res2 = puzzle2(ranges) |> Num.to_str
 
-    Stdout.line!("Puzzle 1: ${res1}\nPuzzle 2: ")
+    Stdout.line!("Puzzle 1: ${res1}\nPuzzle 2: ${res2}")
 
 puzzle1 : List U64, List { start : U64, end : U64 }, U64 -> U64
 puzzle1 = |ids, ranges, total|
@@ -49,3 +50,28 @@ puzzle1 = |ids, ranges, total|
                 puzzle1(rest, ranges, total + 1)
             else
                 puzzle1(rest, ranges, total)
+
+puzzle2 : List { start : U64, end : U64 } -> U64
+puzzle2 = |ranges|
+    ranges
+    |> List.sort_with(
+        |range1, range2|
+            Num.compare(range1.start, range2.start),
+    )
+    |> merge_ranges([])
+    |> List.map(|range| range.end - range.start + 1)
+    |> List.sum
+
+merge_ranges : List { start : U64, end : U64 }, List { start : U64, end : U64 } -> List { start : U64, end : U64 }
+merge_ranges = |ranges, acc|
+    when ranges is
+        [] -> acc
+        [range] -> acc |> List.append(range)
+        [first, second, .. as rest] ->
+            # Overlapping
+            if first.end >= second.start then
+                merged = { start: first.start, end: Num.max(first.end, second.end) }
+                merge_ranges(rest |> List.prepend(merged), acc)
+            else
+                merge_ranges(rest |> List.prepend(second), acc |> List.append(first))
+
