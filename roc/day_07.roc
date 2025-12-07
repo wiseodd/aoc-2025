@@ -39,8 +39,9 @@ main! = |_args|
         |> Result.with_default (0, 0)
 
     res1 = map |> puzzle1(start, Dict.empty({})) |> .0 |> Num.to_str
+    res2 = map |> puzzle2(start, Dict.empty({})) |> .0 |> Num.to_str
 
-    Stdout.line!("Puzzle 1: ${res1}\nPuzzle 2: ")
+    Stdout.line!("Puzzle 1: ${res1}\nPuzzle 2: ${res2}")
 
 puzzle1 : Dict (U64, U64) Str, (U64, U64), Dict (U64, U64) U64 -> (U64, Dict (U64, U64) U64)
 puzzle1 = |map, start, memo|
@@ -69,6 +70,39 @@ puzzle1 = |map, start, memo|
                             )
 
                             all_count = 1 + count_left + count_right
+
+                            (
+                                all_count,
+                                memo_right |> Dict.insert(next, all_count),
+                            )
+
+puzzle2 : Dict (U64, U64) Str, (U64, U64), Dict (U64, U64) U64 -> (U64, Dict (U64, U64) U64)
+puzzle2 = |map, start, memo|
+    next = (start.0 + 1, start.1)
+    when map |> Dict.get(next) is
+        Err(_) -> (1, memo) # Out of bounds => leaf => count
+        Ok(v) ->
+            when memo |> Dict.get(next) is
+                Ok(count) -> (count, memo) # Already visited node => return leaf count
+                Err(_) ->
+                    when v is
+                        "." -> puzzle2(map, next, memo) # No split, just move forward
+                        _ ->
+                            # Count leaves on the left
+                            (count_left, memo_left) = puzzle2(
+                                map,
+                                (start.0 + 1, start.1 - 1),
+                                memo,
+                            )
+
+                            # Count leaves on the right
+                            (count_right, memo_right) = puzzle2(
+                                map,
+                                (start.0 + 1, start.1 + 1),
+                                memo_left,
+                            )
+
+                            all_count = count_left + count_right
 
                             (
                                 all_count,
