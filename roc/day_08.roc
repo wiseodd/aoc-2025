@@ -37,9 +37,9 @@ main! = |_args|
         )
 
     res1 = locs |> puzzle1(n) |> Num.to_str
-    # res2 = map |> puzzle2(start, Dict.empty({})) |> .0 |> Num.to_str
+    res2 = locs |> puzzle2 |> Num.to_str
 
-    Stdout.line!("Puzzle 1: ${res1}\nPuzzle 2: ")
+    Stdout.line!("Puzzle 1: ${res1}\nPuzzle 2: ${res2}")
 
 puzzle1 : List Loc, U64 -> U64
 puzzle1 = |locs, n|
@@ -76,6 +76,44 @@ puzzle1 = |locs, n|
     |> List.sort_desc
     |> List.take_first(3)
     |> List.product
+
+puzzle2 : List Loc -> I64
+puzzle2 = |locs|
+    init_parents =
+        locs
+        |> List.map(|loc| (loc, loc))
+        |> Dict.from_list
+    pairs = locs |> pair_dists
+    default_loc = { x: 0, y: 0, z: 0 }
+
+    do_puzzle2(locs, pairs, init_parents, default_loc, default_loc)
+
+do_puzzle2 : List Loc, List (Loc, Loc, I64), Dict Loc Loc, Loc, Loc -> I64
+do_puzzle2 = |locs, pairs, parents, prev1, prev2|
+    n_sets =
+        parents
+        |> Dict.keys
+        |> List.map(|k| find_set(k, parents))
+        |> Set.from_list
+        |> Set.len
+
+    if n_sets == 1 or (pairs |> List.len == 0) then
+        prev1.x * prev2.x
+    else
+        when pairs is
+            [] -> crash "unreachable"
+            [(loc1, loc2, _), .. as rest] ->
+                p1 = find_set(loc1, parents)
+                p2 = find_set(loc2, parents)
+
+                new_parents = (
+                    if p1 != p2 then
+                        Dict.insert(parents, p2, p1)
+                    else
+                        parents
+                )
+
+                do_puzzle2(locs, rest, new_parents, loc1, loc2)
 
 find_set : Loc, Dict Loc Loc -> Loc
 find_set = |loc, parents|
