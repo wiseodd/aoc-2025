@@ -44,11 +44,13 @@ main! = |_args|
 puzzle1 : List Loc, U64 -> U64
 puzzle1 = |locs, n|
     # Disjoint-set union
-    init_parents = locs 
-        |> List.map(|loc| (loc, loc)) 
+    init_parents =
+        locs
+        |> List.map(|loc| (loc, loc))
         |> Dict.from_list
-    parents = locs 
-        |> pair_dists 
+    parents =
+        locs
+        |> pair_dists
         |> List.take_first(n)
         |> List.walk(
             init_parents,
@@ -58,32 +60,33 @@ puzzle1 = |locs, n|
                 if p1 != p2 then
                     Dict.insert(state, p2, p1)
                 else
-                    state
+                    state,
         )
-    locs 
-        |> List.walk(
-            Dict.empty({}),
-            |state, loc|
-                set = find_set(loc, parents)
-                when state |> Dict.get(set) is
-                    Ok(count) -> state |> Dict.insert(set, count + 1)
-                    Err(_) -> state |> Dict.insert(set, 1)
-        )
-        |> Dict.to_list
-        |> List.map(.1)
-        |> List.sort_desc
-        |> List.take_first(3)
-        |> List.product
+    locs
+    |> List.walk(
+        Dict.empty({}),
+        |state, loc|
+            set = find_set(loc, parents)
+            when state |> Dict.get(set) is
+                Ok(count) -> state |> Dict.insert(set, count + 1)
+                Err(_) -> state |> Dict.insert(set, 1),
+    )
+    |> Dict.to_list
+    |> List.map(.1)
+    |> List.sort_desc
+    |> List.take_first(3)
+    |> List.product
 
 find_set : Loc, Dict Loc Loc -> Loc
 find_set = |loc, parents|
     when parents |> Dict.get(loc) is
-        Ok(parent) -> 
+        Ok(parent) ->
             # Recursively find the largest superset
             if parent == loc then
                 loc
             else
                 find_set(parent, parents)
+
         Err(_) -> loc
 
 pair_dists : List Loc -> List (Loc, Loc, I64)
@@ -100,17 +103,13 @@ pair_dists = |locs|
     |> Set.to_list
     |> List.sort_with(
         |a, b|
-            Num.compare(a.2, b.2), 
+            Num.compare(a.2, b.2),
     )
-
-normsq : Loc -> I64
-normsq = |loc|
-    (loc.x |> Num.pow_int(2))
-    + (loc.y |> Num.pow_int(2))
-    + (loc.z |> Num.pow_int(2))
 
 distsq : Loc, Loc -> I64
 distsq = |loc1, loc2|
-    (Num.pow_int(loc1.x - loc2.x, 2) 
-    + Num.pow_int(loc1.y - loc2.y, 2) 
-    + Num.pow_int(loc1.z - loc2.z, 2))
+    (
+        Num.pow_int(loc1.x - loc2.x, 2)
+        + Num.pow_int(loc1.y - loc2.y, 2)
+        + Num.pow_int(loc1.z - loc2.z, 2)
+    )
