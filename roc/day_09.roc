@@ -70,7 +70,18 @@ puzzle2 = |reds|
                                 |_, segment|
                                     glocs = sort_segment(segment.0, segment.1)
 
-                                    if glocs.0.x < rlocs.1.x and glocs.0.y < rlocs.1.y and glocs.1.x > rlocs.0.x and glocs.1.y > rlocs.0.y then
+                                    if
+                                        (
+                                            glocs.0.x
+                                            < rlocs.1.x
+                                            and glocs.0.y
+                                            < rlocs.1.y
+                                            and glocs.1.x
+                                            > rlocs.0.x
+                                            and glocs.1.y
+                                            > rlocs.0.y
+                                        )
+                                    then
                                         Break(Bool.false)
                                     else
                                         Continue(Bool.true),
