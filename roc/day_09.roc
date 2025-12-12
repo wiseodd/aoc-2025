@@ -49,7 +49,7 @@ puzzle2 = |locs|
 
     locs
     |> List.walk_with_index(
-        0,
+        (0, Dict.empty({})),
         |state1, loc1, i|
             locs
             |> List.drop_first(i + 1)
@@ -70,20 +70,28 @@ puzzle2 = |locs|
                             |> Set.remove(loc2)
                             |> Set.remove(loc12)
                             |> Set.remove(loc21)
-                        edges_valid =
+                        res =
                             rect_edges
                             |> Set.to_list
-                            |> List.all(
-                                |point|
-                                    Set.contains(boundary, point) or is_inside(point, locs),
+                            |> List.walk(
+                                (Bool.true, state2.1),
+                                |state3, point|
+                                    when state3.1 |> Dict.get(point) is
+                                        Ok(val) -> (state3.0 and val, state3.1)
+                                        Err(_) ->
+                                            val = Set.contains(boundary, point) or is_inside(point, locs)
+                                            (state3.0 and val, state3.1 |> Dict.insert(point, val)),
                             )
 
+                        edges_valid = res.0
+
                         if edges_valid then
-                            Num.max(state2, area(loc1, loc2))
+                            (Num.max(state2.0, area(loc1, loc2)), res.1)
                         else
-                            state2,
+                            (state2.0, res.1),
             ),
     )
+    |> .0
 
 area : Loc, Loc -> I64
 area = |corner1, corner2|
