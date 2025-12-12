@@ -44,108 +44,59 @@ puzzle1 = |locs|
     )
 
 puzzle2 : List Loc -> I64
-puzzle2 = |locs|
-    boundary = locs |> get_boundary
+puzzle2 = |reds|
+    greens =
+        when reds is
+            [first, ..] -> get_segments(reds |> List.append(first))
+            _ -> crash "unreachable"
 
-    locs
+    reds
     |> List.walk_with_index(
-        (0, Dict.empty({})),
+        0,
         |state1, loc1, i|
-            locs
+            reds
             |> List.drop_first(i + 1)
             |> List.walk(
                 state1,
                 |state2, loc2|
-                    loc12 = { x: loc1.x, y: loc2.y }
-                    loc21 = { x: loc2.x, y: loc1.y }
+                    size = area(loc1, loc2)
 
-                    if !(Set.contains(boundary, loc12) or is_inside(loc12, locs)) then
-                        state2
-                    else if !(Set.contains(boundary, loc21) or is_inside(loc21, locs)) then
-                        state2
-                    else
-                        rect_edges =
-                            get_boundary([loc1, loc12, loc2, loc21])
-                            |> Set.remove(loc1)
-                            |> Set.remove(loc2)
-                            |> Set.remove(loc12)
-                            |> Set.remove(loc21)
-                        res =
-                            rect_edges
-                            |> Set.to_list
-                            |> List.walk(
-                                (Bool.true, state2.1),
-                                |state3, point|
-                                    when state3.1 |> Dict.get(point) is
-                                        Ok(val) -> (state3.0 and val, state3.1)
-                                        Err(_) ->
-                                            val = Set.contains(boundary, point) or is_inside(point, locs)
-                                            (state3.0 and val, state3.1 |> Dict.insert(point, val)),
+                    if size > state2 then
+                        rlocs = sort_segment(loc1, loc2)
+                        intersect =
+                            greens
+                            |> List.walk_until(
+                                Bool.true,
+                                |_, segment|
+                                    glocs = sort_segment(segment.0, segment.1)
+
+                                    if glocs.0.x < rlocs.1.x and glocs.0.y < rlocs.1.y and glocs.1.x > rlocs.0.x and glocs.1.y > rlocs.0.y then
+                                        Break(Bool.false)
+                                    else
+                                        Continue(Bool.true),
                             )
-
-                        edges_valid = res.0
-
-                        if edges_valid then
-                            (Num.max(state2.0, area(loc1, loc2)), res.1)
-                        else
-                            (state2.0, res.1),
+                        if intersect then size else state2
+                    else
+                        state2,
             ),
     )
-    |> .0
 
 area : Loc, Loc -> I64
 area = |corner1, corner2|
     (1 + Num.abs(corner1.x - corner2.x)) * (1 + Num.abs(corner1.y - corner2.y))
 
-get_boundary : List Loc -> Set Loc
-get_boundary = |locs|
+get_segments : List Loc -> List (Loc, Loc)
+get_segments = |locs|
     when locs is
-        [first, ..] ->
-            do_get_boundary(locs |> List.append(first))
-            |> Set.from_list
-
-        _ -> crash "unreachable"
-
-do_get_boundary : List Loc -> List Loc
-do_get_boundary = |locs|
-    when locs is
-        [] | [_] -> locs
+        [] | [_] -> []
         [loc1, loc2, .. as rest] ->
-            line = if loc1.x == loc2.x then
-                List.range({ start: At(loc1.y), end: At(loc2.y) })
-                |> List.map(|y| { x: loc1.x, y: y })
-            else
-                List.range({ start: At(loc1.x), end: At(loc2.x) })
-                |> List.map(|x| { x: x, y: loc1.y })
+            get_segments(rest |> List.prepend(loc2)) |> List.prepend((loc1, loc2))
 
-            line
-            |> List.concat(
-                do_get_boundary(rest |> List.prepend(loc2)),
-            )
-
-is_inside : Loc, List Loc -> Bool
-is_inside = |loc, locs|
-    when locs is
-        [first, ..] ->
-            count_crossings(loc, locs |> List.append(first)) |> Num.is_odd
-
-        _ -> crash "unreachable"
-
-count_crossings : Loc, List Loc -> U64
-count_crossings = |loc, locs|
-    when locs is
-        [] | [_] -> 0
-        [v1, v2, .. as rest] ->
-            crossing = if v1.x == v2.x then
-                min_y = Num.min(v1.y, v2.y)
-                max_y = Num.max(v1.y, v2.y)
-
-                if v1.x >= loc.x and loc.y > min_y and loc.y <= max_y then
-                    1
-                else
-                    0
-            else
-                0
-
-            crossing + count_crossings(loc, rest |> List.prepend(v2))
+sort_segment : Loc, Loc -> (Loc, Loc)
+sort_segment = |loc1, loc2|
+    x1 = Num.min(loc1.x, loc2.x)
+    x2 = Num.max(loc1.x, loc2.x)
+    y1 = Num.min(loc1.y, loc2.y)
+    y2 = Num.max(loc1.y, loc2.y)
+    ({ x: x1, y: y1 }, { x: x2, y: y2 })
 
