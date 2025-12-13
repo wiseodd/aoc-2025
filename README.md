@@ -1,3 +1,5 @@
 # Advent of Code 2025 in Roc
 
-Run: `roc src/day_*.roc`.
+Run: `roc roc/day_*.roc`.
+
+For Python solutions, `pip install -r requirements.txt && python python/{FNAME}.py`

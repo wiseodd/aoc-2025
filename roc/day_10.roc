@@ -69,8 +69,9 @@ main! = |_args|
         )
 
     res1 = machines |> puzzle1 |> Num.to_str
+    res2 = machines |> puzzle2 |> Num.to_str
 
-    Stdout.line!("Puzzle 1: ${res1}\nPuzzle 2: ")
+    Stdout.line!("Puzzle 1: ${res1}\nPuzzle 2: ${res2}")
 
 puzzle1 : List Machine -> U64
 puzzle1 = |machines|
@@ -119,6 +120,99 @@ do_puzzle1 = |state, machine, memo|
                                 (acc_cost, next_m)
                             else
                                 (Num.min(acc_cost, next_cost + 1), next_m),
+                    )
+
+                (min_cost, final_memo |> Dict.insert(state, min_cost))
+
+puzzle2 : List Machine -> U64
+puzzle2 = |machines|
+    machines
+    |> List.map(
+        |machine|
+            do_puzzle2(
+                List.repeat(0, List.len(machine.target)),
+                machine,
+                Dict.empty({}),
+                0,
+                Num.max_u64,
+            )
+            |> .0,
+    )
+    |> List.sum
+
+do_puzzle2 : List U64, Machine, Dict (List U64) U64, U64, U64 -> (U64, Dict (List U64) U64)
+do_puzzle2 = |state, machine, memo, curr_cost, best_cost|
+    if state == machine.joltages then
+        (0, memo)
+    else if curr_cost >= best_cost then
+        (999999999, memo) # Prune
+    else
+        when memo |> Dict.get(state) is
+            Ok(val) -> (val, memo)
+            Err(_) ->
+                # Best first action ordering
+                best_actions =
+                    machine.actions
+                    |> List.map(
+                        |action|
+                            score =
+                                action
+                                |> List.walk(
+                                    0,
+                                    |acc, idx|
+                                        t =
+                                            machine.joltages
+                                            |> List.get(idx)
+                                            |> Result.with_default(0)
+                                            |> Num.to_i64
+                                        s =
+                                            state
+                                            |> List.get(idx)
+                                            |> Result.with_default(0)
+                                            |> Num.to_i64
+                                        if s - t > 0 then acc + 1 else acc,
+                                )
+                            (action, score),
+                    )
+                    |> List.sort_with(|a, b| Num.compare(b.1, a.1)) # Descending
+                    |> List.map(.0)
+
+                (min_cost, final_memo, _) =
+                    best_actions
+                    |> List.walk(
+                        (999999999, memo, best_cost),
+                        |(acc_cost, m, best), action|
+                            next_state =
+                                action
+                                |> List.walk(
+                                    state,
+                                    |a_state, idx|
+                                        a_state |> List.update(idx, |c| c + 1),
+                                )
+
+                            if
+                                List.map2(
+                                    next_state,
+                                    machine.joltages,
+                                    |s, t| s > t,
+                                )
+                                |> List.any(|b| b)
+                            then
+                                (acc_cost, m, best)
+                            else
+                                (next_cost, next_m) = do_puzzle2(
+                                    next_state,
+                                    machine,
+                                    m,
+                                    curr_cost + 1,
+                                    best,
+                                )
+
+                                (
+                                    Num.min(acc_cost, next_cost + 1),
+                                    next_m,
+                                    Num.min(best, curr_cost + next_cost + 1),
+                                ),
                     )
 
                 (min_cost, final_memo |> Dict.insert(state, min_cost))
