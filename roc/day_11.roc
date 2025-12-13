@@ -1,0 +1,55 @@
+app [main!] {
+    pf: platform "https://github.com/roc-lang/basic-cli/releases/download/0.20.0/X73hGh05nNTkDHU06FHC0YfFaQB1pimX7gncRcao5mU.tar.br",
+}
+
+import pf.Stdout
+import pf.File
+
+main! = |_args|
+    # input = File.read_utf8!("data/day_11_example_01.txt")?
+    input = File.read_utf8!("data/day_11_input_01.txt")?
+
+    children =
+        input
+        |> Str.trim
+        |> Str.split_on("\n")
+        |> List.map(
+            |line|
+                when line |> Str.split_on(" ") is
+                    [node_str, .. as rest] ->
+                        when node_str |> Str.to_utf8 is
+                            [.. as node, ':'] -> (node |> Str.from_utf8 |> Result.with_default(""), rest)
+                            _ -> crash "unreachable"
+
+                    _ -> crash "unreachable",
+        )
+        |> Dict.from_list
+
+    res1 = puzzle1("you", children) |> Num.to_str
+    res2 = puzzle1("you", children) |> Num.to_str
+
+    Stdout.line!("Puzzle 1: ${res1}\nPuzzle 2: ${res2}")?
+
+    Ok({})
+
+puzzle1 : Str, Dict Str (List Str) -> U64
+puzzle1 = |node, children|
+    do_puzzle1(node, children, Dict.empty({})) |> .0
+
+do_puzzle1 : Str, Dict Str (List Str), Dict Str U64 -> (U64, Dict Str U64)
+do_puzzle1 = |node, children, memo|
+    when node is
+        "out" -> (1, memo)
+        _ ->
+            when children |> Dict.get(node) is
+                Err(_) -> crash "unreachable"
+                Ok(next_nodes) ->
+                    (final_counts, final_memo) =
+                        next_nodes
+                        |> List.walk(
+                            ([], memo),
+                            |(counts, m), n|
+                                (c, next_m) = do_puzzle1(n, children, m)
+                                (counts |> List.append(c), next_m),
+                        )
+                    (final_counts |> List.sum, final_memo)
